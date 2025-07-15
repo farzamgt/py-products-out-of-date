@@ -1,35 +1,67 @@
-from __future__ import annotations
 import datetime
-from unittest.mock import patch
+import pytest
+
+from unittest import mock
+
 from app.main import outdated_products
-from typing import Type
 
 
-def test_outdated_products_with_mocked_date() -> None:
-    products = [
-        {
-            "name": "salmon",
-            "expiration_date": datetime.date(2022, 2, 10),
-            "price": 600
-        },
-        {
-            "name": "chicken",
-            "expiration_date": datetime.date(2022, 2, 5),
-            "price": 120
-        },
-        {
-            "name": "duck",
-            "expiration_date": datetime.date(2022, 2, 1),
-            "price": 160
-        },
+@pytest.mark.parametrize(
+    "products, date, outdated",
+    [
+        (
+            [
+                {
+                    "name": "salmon",
+                    "expiration_date": datetime.date(2022, 2, 10),
+                    "price": 600
+                },
+                {
+                    "name": "chicken",
+                    "expiration_date": datetime.date(2022, 2, 5),
+                    "price": 120
+                },
+                {
+                    "name": "duck",
+                    "expiration_date": datetime.date(2022, 2, 1),
+                    "price": 160
+                }
+            ],
+            datetime.date(2022, 2, 2),
+            [
+                "duck"
+            ]
+        ),
+        (
+            [
+                {
+                    "name": "salmon",
+                    "expiration_date": datetime.date(2022, 2, 10),
+                    "price": 600
+                },
+                {
+                    "name": "chicken",
+                    "expiration_date": datetime.date(2022, 2, 2),
+                    "price": 120
+                },
+                {
+                    "name": "duck",
+                    "expiration_date": datetime.date(2022, 2, 1),
+                    "price": 160
+                }
+            ],
+            datetime.date(2022, 2, 2),
+            [
+                "duck"
+            ]
+        )
     ]
-
-    class MyDate(datetime.date):
-        @classmethod
-        def today(cls: Type[MyDate]) -> MyDate:
-            return cls(2022, 2, 5)
-
-    with patch("app.main.datetime.date", MyDate):
-        result = outdated_products(products)
-
-    assert result == ["duck"]
+)
+def test_outdated_products(
+        products: list[dict],
+        date: datetime,
+        outdated: list[str]
+) -> None:
+    with mock.patch("datetime.date") as mock_date:
+        mock_date.today.return_value = date
+        assert outdated_products(products) == outdated
